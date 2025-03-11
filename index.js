@@ -1,6 +1,10 @@
 const fs = require('fs');
 const readline = require('readline');
 
+function isValidNumber(value) {
+    return !isNaN(value) && isFinite(value) && !/^0x/i.test(value);
+}
+
 function solveQuadratic(a, b, c) {
     const D = b * b - 4 * a * c;
     if (D > 0) {
@@ -31,12 +35,25 @@ function interactiveMode() {
 
     function askCoefficient(name) {
         return new Promise(resolve => {
-            rl.question(`${name} = `, answer => resolve(parseFloat(answer)));
+            rl.question(`${name} = `, answer => {
+                if (!isValidNumber(answer)) {
+                    console.error(`Error. Expected a valid real number, got ${answer} instead`);
+                    resolve(askCoefficient(name));
+                } else {
+                    resolve(parseFloat(answer));
+                }
+            });
         });
     }
 
     async function main() {
-        const a = await askCoefficient('a');
+        let a;
+        do {
+            a = await askCoefficient('a');
+            if (a === 0) {
+                console.error("Error. a cannot be 0");
+            }
+        } while (a === 0);
         const b = await askCoefficient('b');
         const c = await askCoefficient('c');
         rl.close();
@@ -49,9 +66,24 @@ function interactiveMode() {
 }
 
 function fileMode(filePath) {
+    if (!fs.existsSync(filePath)) {
+        console.error(`file ${filePath} does not exist`);
+        process.exit(1);
+    }
     try {
         const data = fs.readFileSync(filePath, 'utf8').trim();
-        const [a, b, c] = data.split(' ').map(Number);
+        const parts = data.split(' ');
+        if (parts.length !== 3 || !parts.every(isValidNumber)) {
+            console.error("invalid file format");
+            process.exit(1);
+        }
+
+        const [a, b, c] = parts.map(Number);
+        if (a === 0) {
+            console.error("Error. a cannot be 0");
+            process.exit(1);
+        }
+
         const result = solveQuadratic(a, b, c);
         printResult(a, b, c, result);
     } catch (error) {
