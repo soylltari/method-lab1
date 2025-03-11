@@ -48,4 +48,20 @@ function interactiveMode() {
     main();
 }
 
-interactiveMode();
+function fileMode(filePath) {
+    try {
+        const data = fs.readFileSync(filePath, 'utf8').trim();
+        const [a, b, c] = data.split(' ').map(Number);
+        const result = solveQuadratic(a, b, c);
+        printResult(a, b, c, result);
+    } catch (error) {
+        console.error(`Error reading file: ${error.message}`);
+        process.exit(1);
+    }
+}
+
+if (process.argv.length === 3) {
+    fileMode(process.argv[2]);
+} else {
+    interactiveMode();
+}
